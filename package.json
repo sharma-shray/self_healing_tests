@@ -1,0 +1,27 @@
+{
+  "name": "self-healing-tests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "generate-tests": "node ./zephyr_integration/create_tests.js",
+    "run-playwright": "npx playwright test",
+    "test": "npm run generate-tests && npm run run-playwright",
+    "test-ui": "npm run generate-tests && npm run integration:open",
+    "integration:open": "playwright test --debug --workers=1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "cheerio": "^1.0.0-rc.12",
+    "groq-sdk": "^0.3.3",
+    "ollama": "^0.5.1",
+    "playwright": "^1.44.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.12.11"
+  }
+}

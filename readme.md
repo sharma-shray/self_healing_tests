@@ -1,0 +1,3 @@
+
+export GROQ_API_KEY=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
+npm run test
