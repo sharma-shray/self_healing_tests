@@ -8,7 +8,7 @@
     "run-playwright": "npx playwright test",
     "test": "npm run generate-tests && npm run run-playwright",
     "test-ui": "npm run generate-tests && npm run integration:open",
-    "integration:open": "playwright test --debug --workers=1"
+    "integration:open": "playwright test --ui --workers=1"
   },
   "keywords": [],
   "author": "",

@@ -1,95 +1,165 @@
 import Groq from 'groq-sdk';
 import { load } from 'cheerio';
-import ollama from 'ollama'
-export async function executeDynamicCommand(userInput,page) {
-  // Extract the current page's entire DOM as a string
-  let pageDOMAll ;
-  try{  pageDOMAll = await page.content();}
+import ollama from 'ollama';
 
-  catch(e){
-    //nothing
+// Define the Message type
+interface Message {
+  role: 'system' | 'user';
+  content: string;
+}
+
+export async function executeDynamicCommand(userInput: string, page: any): Promise<void> {
+  // Extract the current page's entire DOM as a string
+  let pageDOMAll: string;
+  try {
+    await page.waitForSelector('body');
+    pageDOMAll = await page.content();
+  } catch (e) {
+    // Handle error
+    console.error("Failed to get page content:", e);
+    return;
   }
 
-  //extract only the body
-    // Load the HTML content into cheerio
-    const pageDOM = load(pageDOMAll);
+  // Load the HTML content into cheerio
+  const pageDOM = await load(pageDOMAll);
 
-    // Extract the content of the <body> tag
-    const PageDOMBody = pageDOM('body').html();
-  const groqResponse=await cleanResponse(await groqCall(userInput,PageDOMBody));
-
-  //const locallamma=await cleanResponse(await localhostLamma(userInput,PageDOMBody));
-  //console.log("localhost: ",locallamma);
-    
-
- console.log("groq response: ",groqResponse);
-    const result =   page.evaluate(groqResponse);
-    await page.waitForTimeout(100);
+  // Extract the content of the <body> tag
+  const PageDOMBody = await pageDOM('body').html();
+ // Check if PageDOMBody is null and handle it
+ if (PageDOMBody === null) {
+  console.error("Failed to extract body content");
+  return;
 }
 
-//Function for calling groq
-async function groqCall(userInput,PageDOMBody){
-//groq
-const groq = new Groq();
-const chatCompletion = await groq.chat.completions.create({
-  "messages": [
-    {
-      "role":"system",
-      "content": "you generate values for 'x' in page.evaluate(x) for questions asked . example : document.querySelector('#username').value = 'user'.You will get the requirements in English and the page DOM as input and you have to return only javascript code."
-    },
-    {
-      "role": "user",
-      "content": "Resposnd for the value for X, page.evaluate('X') ,Task:"+userInput+", write a value of X in typescript for the task to return only one sinlge line of code.the DOM is "+PageDOMBody+ ""
-    }
-  ],
-  "model": "llama3-8b-8192",
-  "temperature": 0,
-  "max_tokens": 1024,
-  "top_p": 0,
-  "stream": false,
-  "stop": null
-});
-const response=chatCompletion.choices[0].message.content;
-//const cleanedString = response.replace(/`/g, '');
-return response;
+//console.log("passing this DOM",PageDOMBody)
+  // Split the PageDOMBody into parts of 20k words each
+  const parts = splitTextIntoParts(PageDOMBody, 200000);
+  const groqResponse = await groqCall(userInput, parts)
+  console.log(groqResponse);
+  const groqCleanedResponse = await cleanResponse(groqResponse);
+
+   //const locallamma = await cleanResponse(await localhostLamma(userInput, PageDOMBody));
+  // console.log("localhost: ", locallamma);
+
+  const result = await page.evaluate(groqCleanedResponse);
+  await page.waitForTimeout(100);
 }
 
-async function cleanResponse(response){
-  const replacedValue= response.replace(/`/g, '')
-      const extractedCode=await extractCode(replacedValue)
-      const code= await extractCodeFromPageEvaluate(extractedCode);
+// Function for calling groq
+async function groqCall(userInput: string, parts: string[]): Promise<string> {
+  const groq = new Groq();
 
-return code
+  // Create the message section with the parts and additional message
+  const messages = createMessages(userInput, parts);
+
+  const chatCompletion = await groq.chat.completions.create({
+    messages: messages,
+    model: "mixtral-8x7b-32768",
+    temperature: 0,
+    max_tokens: 1024,
+    top_p: 0,
+    stream: false,
+    stop: null
+  });
+  return chatCompletion.choices[0].message.content;
 }
 
-//function for calling local hosted llama
-async function localhostLamma(userInput,PageDOMBody){
+async function cleanResponse(response: string): Promise<string> {
+  const replacedValue = response.replace(/`/g, '');
+  const extractedCode = await extractCode(replacedValue);
+  const code = await extractCodeFromPageEvaluate(extractedCode);
+
+  return code;
+}
+
+// Function for calling locally hosted llama
+async function localhostLamma(userInput: string, PageDOMBody: string): Promise<string> {
   const response = await ollama.chat({
     model: 'llama3',
     messages: [
       {
-        "role":"system",
-        "content": "you generate values for 'x' in page.evaluate(x) for questions asked . example : document.querySelector('#username').value = 'user'.You will get the requirements in English and the page DOM as input and you have to return only javascript code."
-      },{
-      "role": "user",
-      "content": "Resposnd for the value for X, page.evaluate('X') ,Task:"+userInput+", write a value of X in typescript for the task to return only one sinlge line of code.the DOM is "+PageDOMBody+ ""
-    }],
-  })
-  return (response.message.content)
+        role: "system",
+        content: "you generate values for 'x' in page.evaluate(x) function in playwright. example : document.querySelector('#username').value = 'user'.You will get the requirements in English and the page DOM as input and you have to return only javascript code, no communication."
+      },
+      {
+        role: "user",
+        content: "Create a javascript code to run in page.evaluate() function Task:" + userInput + ", the DOM is " + PageDOMBody
+      }
+    ],
+  });
+  return response.message.content;
 }
 
+// If LLM responds with some communication, we take only code
+async function extractCode(text: string): Promise<string> {
+  // Regular expression to match code blocks in the format ```typescript or ```js
+  const codePattern = /```(?:typescript|js)?\s*([\s\S]*?)\s*```/;
 
-//if LLM response with some communication we take only code
-async function extractCode(text) {
-  console.log("extract code: ",text)
-  const codePattern = /```(?:javascript|js)?([\s\S]*?)```/;
+  // Find the match in the text
   const match = text.match(codePattern);
+
+  // Log the matched code for debugging
+  if (match) {
+    console.log("Extracted code:", match[1].trim());
+  } else {
+    console.log("No code block found in the text.");
+  }
+
+  // Return the extracted code or an empty string if no match is found
   return match ? match[1].trim() : '';
 }
-// if LLM wraps it in page.evaluate we unwrap it
-async function extractCodeFromPageEvaluate(text) {
+
+// If LLM wraps it in page.evaluate, we unwrap it
+async function extractCodeFromPageEvaluate(text: string): Promise<string> {
   const pattern = /page\.evaluate\('([\s\S]*?)'\);/;
   const match = text.match(pattern);
   return match ? match[1].trim() : '';
 }
 
+// Function to split text into parts with a specified max length
+function splitTextIntoParts(text: string, maxLength: number): string[] {
+  const words = text.split(' ');
+  const parts: string[] = [];
+  let part: string[] = [];
+
+  for (const word of words) {
+    if (part.join(' ').length + word.length + 1 > maxLength) {
+      parts.push(part.join(' '));
+      part = [];
+    }
+    part.push(word);
+  }
+
+  if (part.length > 0) {
+    parts.push(part.join(' '));
+  }
+
+  return parts;
+}
+
+// Function to create the message section
+function createMessages(userInput: string, parts: string[]): Message[] {
+  const messages: Message[] = [
+    {
+      role: "system",
+      content: "you generate values for 'x' in page.evaluate(x) for questions asked. You will get the requirements in English and the page DOM as input and you have to return only JavaScript code."
+    },
+    {
+      role: "user",
+      content: `The next ${parts.length} messages will be the DOM of the page, understand the DOM completely.`
+    }
+  ];
+
+  parts.forEach(part => {
+    messages.push({
+      role: "user",
+      content: `The DOM is ${part}`
+    });
+  });
+
+  messages.push({
+    role: "user",
+    content: "Resposnd for the value for X, page.evaluate('X') ,Task:" + userInput + ", write a value of X in typescript for the task to return only one sinlge line of code, for the DOM provided in above chat"
+  });
+  return messages;
+}

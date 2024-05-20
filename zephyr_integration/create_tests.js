@@ -78,8 +78,13 @@ ${commands}
     }).join('\n');
 
     const fullTestScript = `
-import { test } from '@playwright/test';
-import { executeDynamicCommand } from '../lib/command';
+    import { test } from '@playwright/test';
+    import { executeDynamicCommand } from '../lib/command';
+    
+    test.beforeEach(async ({ page }) => {
+        await page.goto("https://eu.phrase-qa.com/");
+      });
+    
 
 ${testScripts}
 `;
