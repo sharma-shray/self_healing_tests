@@ -35,7 +35,7 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
   // Split the PageDOMBody into parts of 20k words each
   const parts = splitTextIntoParts(PageDOMBody, 200000);
   const groqResponse = await groqCall(userInput, parts)
-  console.log(groqResponse);
+  console.log("groqResponse", groqResponse);
   const groqCleanedResponse = await cleanResponse(groqResponse);
 
    //const locallamma = await cleanResponse(await localhostLamma(userInput, PageDOMBody));
@@ -92,25 +92,28 @@ async function localhostLamma(userInput: string, PageDOMBody: string): Promise<s
 
 // If LLM responds with some communication, we take only code
 async function extractCode(text: string): Promise<string> {
+  return text;
   // Regular expression to match code blocks in the format ```typescript or ```js
-  const codePattern = /```(?:typescript|js)?\s*([\s\S]*?)\s*```/;
+  // const codePattern = /```(?:typescript|js)?\s*([\s\S]*?)\s*```/;
 
-  // Find the match in the text
-  const match = text.match(codePattern);
+  // console.log("text is 2", text);
+  // // Find the match in the text
+  // const match = text.match(codePattern);
 
-  // Log the matched code for debugging
-  if (match) {
-    console.log("Extracted code:", match[1].trim());
-  } else {
-    console.log("No code block found in the text.");
-  }
+  // // Log the matched code for debugging
+  // if (match) {
+  //   console.log("Extracted code:", match[1].trim());
+  // } else {
+  //   console.log("No code block found in the text.");
+  // }
 
-  // Return the extracted code or an empty string if no match is found
-  return match ? match[1].trim() : '';
+  // // Return the extracted code or an empty string if no match is found
+  // return match ? match[1].trim() : '';
 }
 
 // If LLM wraps it in page.evaluate, we unwrap it
 async function extractCodeFromPageEvaluate(text: string): Promise<string> {
+  console.log("text is", text);
   const pattern = /page\.evaluate\('([\s\S]*?)'\);/;
   const match = text.match(pattern);
   return match ? match[1].trim() : '';
@@ -142,7 +145,7 @@ function createMessages(userInput: string, parts: string[]): Message[] {
   const messages: Message[] = [
     {
       role: "system",
-      content: "you generate values for 'x' in page.evaluate(x) for questions asked. You will get the requirements in English and the page DOM as input and you have to return only JavaScript code."
+      content: "you generate values for 'x' in page.evaluate(x) for questions asked. You will get the requirements in English and the page DOM as input and you have to return only JavaScript code. No description, no explanation, only respond with code."
     },
     {
       role: "user",
