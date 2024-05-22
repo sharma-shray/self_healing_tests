@@ -10,6 +10,8 @@
 
 test('Verify User Can create a workflow', async ({ page }) => {
 
+    await executeDynamicCommand("Accept the cookies", page);
+    await executeDynamicCommand("Cookie banner should be gone", page);
     await executeDynamicCommand("Enter text into the \"shray.sharma\" field.", page);
     await executeDynamicCommand("The entered text should be visible in the Username field.", page);
     await executeDynamicCommand("enter password \"Kidsnextdoor123!\"", page);

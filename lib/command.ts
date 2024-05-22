@@ -42,6 +42,7 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
   // console.log("localhost: ", locallamma);
 
   const result = await page.evaluate(groqCleanedResponse);
+  console.log("evaluation result : ", result)
   await page.waitForTimeout(100);
 }
 
@@ -71,7 +72,7 @@ async function cleanResponse(response: string): Promise<string> {
 
   return code;
 }
-
+/*
 // Function for calling locally hosted llama
 async function localhostLamma(userInput: string, PageDOMBody: string): Promise<string> {
   const response = await ollama.chat({
@@ -89,7 +90,7 @@ async function localhostLamma(userInput: string, PageDOMBody: string): Promise<s
   });
   return response.message.content;
 }
-
+*/
 // If LLM responds with some communication, we take only code
 async function extractCode(text: string): Promise<string> {
   return text;
@@ -112,13 +113,14 @@ async function extractCode(text: string): Promise<string> {
 }
 
 // If LLM wraps it in page.evaluate, we unwrap it
-async function extractCodeFromPageEvaluate(text: string): Promise<string> {
-  console.log("text is", text);
-  const pattern = /page\.evaluate\('([\s\S]*?)'\);/;
+async function extractCodeFromPageEvaluate(text) {
+  
+  // Updated pattern to correctly match everything between page.evaluate( and )
+  const pattern = /page\.evaluate\(([^)]+)\);/;
   const match = text.match(pattern);
+  console.log("text is", match ? match[1].trim() : '');
   return match ? match[1].trim() : '';
 }
-
 // Function to split text into parts with a specified max length
 function splitTextIntoParts(text: string, maxLength: number): string[] {
   const words = text.split(' ');
@@ -145,7 +147,16 @@ function createMessages(userInput: string, parts: string[]): Message[] {
   const messages: Message[] = [
     {
       role: "system",
-      content: "you generate values for 'x' in page.evaluate(x) for questions asked. You will get the requirements in English and the page DOM as input and you have to return only JavaScript code. No description, no explanation, only respond with code."
+      //content: "You generate values for 'x' in page.evaluate(x) for questions asked. You will get the requirements in English and the page DOM as input and you have to return only JavaScript code. No description, no explanation, only respond with code ,without the wrapper of page.evaluate(...)."
+      content:  `You are a javascript code generator, and generate only code no conversation.
+      The user will pass you the DOM of a page, and ask you to generate a code to code which he will feed in page.evaluate(..) function.
+      Criterion:
+      - Respond without details, without conversation, without any details and explanations.
+      - Respond with only code.
+      - DO NOT WRAP YOUR RESPONSES IN PAGE.EVALUATE(...) user is passing your output in that function already.
+      - Keep your response to only code.
+      - Adhere strictly to what is asked and the DOM , do not assume DOM structure or details
+      - A sample of a good replies: document.querySelector('.tms-tile-title--orchestrator').click() , document.querySelector('#sign-in-form [name="password"]').value = 'your_password'`
     },
     {
       role: "user",
