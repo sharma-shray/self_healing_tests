@@ -173,7 +173,7 @@ function createMessages(userInput: string, parts: string[]): Message[] {
 
   messages.push({
     role: "user",
-    content: "Resposnd for the value for X, page.evaluate('X') ,Task:" + userInput + ", write a value of X in typescript for the task to return only one sinlge line of code, for the DOM provided in above chat"
+    content: "I am passing your response as is into page.evaluate() function make sure you repond with a working reply if passed to the function , ,Task:" + userInput + ", for the DOM provided in above chat"
   });
   return messages;
 }
