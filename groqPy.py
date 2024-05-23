@@ -40,7 +40,7 @@ def run_conversation(user_prompt):
     messages = [
         {
             "role": "system",
-            "content": "You are a function calling LLM that creates and verifies a javascript code which can perform a certain task for the user. The user will pass you the DOM and the task. After creating the code you verify the result with the function call."
+            "content": "You are a Code assistant that creates correct javascript code for tasks that user needs to acheive. After which you call the function code_without_wrapper with correct values . The user will pass you the DOM and the task. After creating the code you recheck if the code is correct and send the result to the function code_without_wrapper."
         },
         {
             "role": "user",
@@ -83,7 +83,6 @@ def run_conversation(user_prompt):
     )
 
     response_message = response.choices[0].message
-    print(response_message)
     tool_calls = response_message.tool_calls
 
     if tool_calls:
