@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk';
 import { load } from 'cheerio';
-import ollama from 'ollama';
+import axios from 'axios';
 
 // Define the Message type
 interface Message {
@@ -25,27 +25,33 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
 
   // Extract the content of the <body> tag
   const PageDOMBody = await pageDOM('body').html();
- // Check if PageDOMBody is null and handle it
- if (PageDOMBody === null) {
-  console.error("Failed to extract body content");
-  return;
+  
+  // Check if PageDOMBody is null and handle it
+  if (PageDOMBody === null) {
+    console.error("Failed to extract body content");
+    return;
+  }
+
+  // Send the request to the Python server
+  try {
+    const response = await axios.post('http://localhost:5000/process', {
+      user_prompt: userInput,
+      DOM: PageDOMBody
+    });
+
+    const groqResponse = response.data.result;
+    console.log("groqResponse", groqResponse);
+
+    const result = await page.evaluate(groqResponse);
+    console.log("evaluation result : ", result);
+    await page.waitForTimeout(100);
+  } catch (error) {
+    console.error("Failed to process request:", error);
+  }
 }
 
-//console.log("passing this DOM",PageDOMBody)
-  // Split the PageDOMBody into parts of 20k words each
-  const parts = splitTextIntoParts(PageDOMBody, 200000);
-  const groqResponse = await groqCall(userInput, parts)
-  console.log("groqResponse", groqResponse);
-  const groqCleanedResponse = await cleanResponse(groqResponse);
-
-   //const locallamma = await cleanResponse(await localhostLamma(userInput, PageDOMBody));
-  // console.log("localhost: ", locallamma);
-
-  const result = await page.evaluate(groqCleanedResponse);
-  console.log("evaluation result : ", result)
-  await page.waitForTimeout(100);
-}
-
+/*
+async function get_code(){console.log("hi")}
 // Function for calling groq
 async function groqCall(userInput: string, parts: string[]): Promise<string> {
   const groq = new Groq();
@@ -56,11 +62,38 @@ async function groqCall(userInput: string, parts: string[]): Promise<string> {
   const chatCompletion = await groq.chat.completions.create({
     messages: messages,
     model: "mixtral-8x7b-32768",
+    tools: [
+      {
+      "type": "function",
+      "function": {
+          "name": "get_code",
+          "description": "returns code for page.evaluate() function without the wrapper and description",
+          "parameters": {
+              "type": "object",
+              "properties": {
+                  "description": {
+                      "type": "string",
+                      "description": "the decription for the code generated",
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "the code which will work, encapsulated inside page.evaluate()",
+                },
+                "code_without_wrapper": {
+                  "type": "string",
+                  "description": "the code without page.evaluate() wrapper",
+              }
+              },
+              "required": ["code","code_without_wrapper"],
+          },
+      }}
+    ],
     temperature: 0,
     max_tokens: 1024,
     top_p: 0,
     stream: false,
-    stop: null
+    stop: null,
+    tool_choice: {string: "function", toolChoice: {function: {name:"get_code"}}}
   });
   return chatCompletion.choices[0].message.content;
 }
@@ -72,25 +105,6 @@ async function cleanResponse(response: string): Promise<string> {
 
   return code;
 }
-/*
-// Function for calling locally hosted llama
-async function localhostLamma(userInput: string, PageDOMBody: string): Promise<string> {
-  const response = await ollama.chat({
-    model: 'llama3',
-    messages: [
-      {
-        role: "system",
-        content: "you generate values for 'x' in page.evaluate(x) function in playwright. example : document.querySelector('#username').value = 'user'.You will get the requirements in English and the page DOM as input and you have to return only javascript code, no communication."
-      },
-      {
-        role: "user",
-        content: "Create a javascript code to run in page.evaluate() function Task:" + userInput + ", the DOM is " + PageDOMBody
-      }
-    ],
-  });
-  return response.message.content;
-}
-*/
 // If LLM responds with some communication, we take only code
 async function extractCode(text: string): Promise<string> {
   return text;
@@ -173,7 +187,8 @@ function createMessages(userInput: string, parts: string[]): Message[] {
 
   messages.push({
     role: "user",
-    content: "I am passing your response as is into page.evaluate() function make sure you repond with a working reply if passed to the function , ,Task:" + userInput + ", for the DOM provided in above chat"
+    content: "I am passing your response as is into page.evaluate() function make sure you repond with a working reply if passed to the function ,Task:" + userInput + ", for the DOM provided in above chat"
   });
   return messages;
 }
+*/
