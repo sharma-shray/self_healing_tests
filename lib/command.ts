@@ -34,7 +34,7 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
 
   // Send the request to the Python server
   try {
-    const response = await axios.post('http://localhost:5000/process', {
+    const response = await axios.post('http://127.0.0.1:5000/process', {
       user_prompt: userInput,
       DOM: PageDOMBody
     });

@@ -1,11 +1,16 @@
 from flask import Flask, request, jsonify
 import os
-from groq import Groq
 import json
+from groq import Groq
 
 app = Flask(__name__)
 
-client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+# Ensure the API key is set
+api_key = os.getenv('GROQ_API_KEY')
+if not api_key:
+    raise ValueError("GROQ_API_KEY environment variable is not set")
+
+client = Groq(api_key=api_key)
 MODEL = 'mixtral-8x7b-32768'
 
 def code_without_wrapper():
@@ -13,22 +18,29 @@ def code_without_wrapper():
 
 @app.route('/process', methods=['POST'])
 def process():
-    data = request.json
-    user_prompt = data.get('user_prompt')
-    DOM = data.get('DOM')
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-    if not user_prompt or not DOM:
-        return jsonify({"error": "Missing user_prompt or DOM"}), 400
+        user_prompt = data.get('user_prompt')
+        DOM = data.get('DOM')
 
-    user_prompt_with_DOM = f"{user_prompt}\n\nDOM:\n{DOM}"
-    result = run_conversation(user_prompt_with_DOM)
-    return jsonify({"result": result})
+        if not user_prompt or not DOM:
+            return jsonify({"error": "Missing user_prompt or DOM"}), 400
+
+        user_prompt_with_DOM = f"{user_prompt}\n\nDOM:\n{DOM}"
+        result = run_conversation(user_prompt_with_DOM)
+        return jsonify({"result": result})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def run_conversation(user_prompt):
     messages = [
         {
             "role": "system",
-            "content": "You are a function calling LLM that creates and verifies a javascript code which can perform a certain task for the user.The user will pass you the DOM and the task.After creating the code you verify the result with the function call. "
+            "content": "You are a function calling LLM that creates and verifies a javascript code which can perform a certain task for the user. The user will pass you the DOM and the task. After creating the code you verify the result with the function call."
         },
         {
             "role": "user",
@@ -46,7 +58,7 @@ def run_conversation(user_prompt):
                     "properties": {
                         "code_explaination": {
                             "type": "string",
-                            "description": "The explaination of the code you have generated",
+                            "description": "The explanation of the code you have generated",
                         },
                         "code_with_wrapper": {
                             "type": "string",
@@ -57,7 +69,7 @@ def run_conversation(user_prompt):
                             "description": "The code without the page.evaluate wrapper (e.g. 'document.querySelector('div.flex.flex-col.gap-5.justify-end.mx-auto > div:nth-child(1) > h2')')",
                         }
                     },
-                    "required": ["code_without_wrapper","code_with_wrapper"],
+                    "required": ["code_without_wrapper", "code_with_wrapper"],
                 },
             },
         }
@@ -78,7 +90,8 @@ def run_conversation(user_prompt):
         for tool_call in tool_calls:
             function_arguments = json.loads(tool_call.function.arguments)
             code_without_wrapper = function_arguments.get("code_without_wrapper")
-            return f"The extracted code_without_wrapper is: {code_without_wrapper}"
+            print(code_without_wrapper)
+            return {code_without_wrapper}
 
     return "No function calls were made by the model."
 
