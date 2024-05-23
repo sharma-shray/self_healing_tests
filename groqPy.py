@@ -90,7 +90,7 @@ def run_conversation(user_prompt):
             function_arguments = json.loads(tool_call.function.arguments)
             code_without_wrapper = function_arguments.get("code_without_wrapper")
             print(code_without_wrapper)
-            return {code_without_wrapper}
+            return code_without_wrapper
 
     return "No function calls were made by the model."
 
