@@ -156,8 +156,8 @@ async function cleanResponse(response: string): Promise<string> {
   return code;
 }
 async function extractCode(text: string): Promise<string> {
-  // Regular expression to match code blocks in the format ---javascript
-  const codePattern = /---(?:javascript|typescript|js)\s*([\s\S]*?)\s*---/;
+  // Regular expression to match code blocks in plain text format
+  const codePattern = /```(?:javascript|typescript|js)?\s*([\s\S]*?)\s*```/;
 
   // Find the match in the text
   const match = text.match(codePattern);
