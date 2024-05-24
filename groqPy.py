@@ -40,7 +40,11 @@ def run_conversation(user_prompt):
     messages = [
         {
             "role": "system",
-            "content": "You are a Code assistant that creates correct javascript code for tasks that user needs to acheive. After which you call the function code_without_wrapper with correct values . The user will pass you the DOM and the task. After creating the code you recheck if the code is correct and send the result to the function code_without_wrapper."
+            "content": """You are a Code assistant for a page.evaluate function that creates only javascript code to acheive tasks that user needs. After which you call the function code_without_wrapper with correct javascript code. The user will pass you the DOM and the task. 
+            - After creating the call for the function recheck all the values. 
+            - Locators priorities  id, Name, Xpath,css Selector
+            - DO NOT create a function call unless the code is ready
+            - DO NOT create invalid function calls e.g. /* INSERT CODE HERE */ or any filler text only use real values"""
         },
         {
             "role": "user",
@@ -52,7 +56,7 @@ def run_conversation(user_prompt):
             "type": "function",
             "function": {
                 "name": "code_without_wrapper",
-                "description": "Evaluate the code generated for the task",
+                "description": "page.evaulate function from playwright",
                 "parameters": {
                     "type": "object",
                     "properties": {

@@ -1,6 +1,5 @@
 import Groq from 'groq-sdk';
 import { load } from 'cheerio';
-import axios from 'axios';
 
 // Define the Message type
 interface Message {
@@ -8,6 +7,44 @@ interface Message {
   content: string;
 }
 
+export async function executeDynamicCommand(userInput: string, page: any): Promise<void> {
+  // Extract the current page's entire DOM as a string
+  let pageDOMAll: string;
+  try {
+    await page.waitForSelector('body');
+    pageDOMAll = await page.content();
+  } catch (e) {
+    // Handle error
+    console.error("Failed to get page content:", e);
+    return;
+  }
+
+  // Load the HTML content into cheerio
+  const pageDOM = await load(pageDOMAll);
+
+  // Extract the content of the <body> tag
+  const PageDOMBody = await pageDOM('body').html();
+ // Check if PageDOMBody is null and handle it
+ if (PageDOMBody === null) {
+  console.error("Failed to extract body content");
+  return;
+}
+
+//console.log("passing this DOM",PageDOMBody)
+  // Split the PageDOMBody into parts of 20k words each
+  const parts = splitTextIntoParts(PageDOMBody, 200000);
+  const groqResponse = await groqCall(userInput, parts)
+  console.log("groqResponse", groqResponse);
+  const groqCleanedResponse = await cleanResponse(groqResponse);
+
+   //const locallamma = await cleanResponse(await localhostLamma(userInput, PageDOMBody));
+  // console.log("localhost: ", locallamma);
+
+  const result = await page.evaluate(groqCleanedResponse);
+  console.log("evaluation result : ", result)
+  await page.waitForTimeout(100);
+}
+/* // code for function calling using python
 export async function executeDynamicCommand(userInput: string, page: any): Promise<void> {
   // Extract the current page's entire DOM as a string
   let pageDOMAll: string;
@@ -48,10 +85,8 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
   } catch (error) {
     console.error("Failed to process request:", error);
   }
-}
+}*/
 
-/*
-async function get_code(){console.log("hi")}
 // Function for calling groq
 async function groqCall(userInput: string, parts: string[]): Promise<string> {
   const groq = new Groq();
@@ -62,41 +97,55 @@ async function groqCall(userInput: string, parts: string[]): Promise<string> {
   const chatCompletion = await groq.chat.completions.create({
     messages: messages,
     model: "mixtral-8x7b-32768",
-    tools: [
-      {
-      "type": "function",
-      "function": {
-          "name": "get_code",
-          "description": "returns code for page.evaluate() function without the wrapper and description",
-          "parameters": {
-              "type": "object",
-              "properties": {
-                  "description": {
-                      "type": "string",
-                      "description": "the decription for the code generated",
-                  },
-                  "code": {
-                    "type": "string",
-                    "description": "the code which will work, encapsulated inside page.evaluate()",
-                },
-                "code_without_wrapper": {
-                  "type": "string",
-                  "description": "the code without page.evaluate() wrapper",
-              }
-              },
-              "required": ["code","code_without_wrapper"],
-          },
-      }}
-    ],
     temperature: 0,
     max_tokens: 1024,
     top_p: 0,
     stream: false,
-    stop: null,
-    tool_choice: {string: "function", toolChoice: {function: {name:"get_code"}}}
+    stop: null
   });
+  const response=chatCompletion.choices[0].message.content;
+  if (!response.includes("page.evaluate")) {
+    console.log(` Retrying...`);
+    
+    messages.push({
+      role: "user",
+      content: `You replied with ${response}, it is missing the code please fix it `
+    });
+    const chatCompletion = await groq.chat.completions.create({
+      messages: messages,
+      model: "mixtral-8x7b-32768",
+      temperature: 0,
+      max_tokens: 1024,
+      top_p: 0,
+      stream: false,
+      stop: null
+    });
+  }
   return chatCompletion.choices[0].message.content;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///////////---------------------------Library-------------------------------///////////
 
 async function cleanResponse(response: string): Promise<string> {
   const replacedValue = response.replace(/`/g, '');
@@ -105,25 +154,22 @@ async function cleanResponse(response: string): Promise<string> {
 
   return code;
 }
-// If LLM responds with some communication, we take only code
 async function extractCode(text: string): Promise<string> {
-  return text;
-  // Regular expression to match code blocks in the format ```typescript or ```js
-  // const codePattern = /```(?:typescript|js)?\s*([\s\S]*?)\s*```/;
+  // Regular expression to match code blocks in the format ---javascript
+  const codePattern = /---(?:javascript|typescript|js)\s*([\s\S]*?)\s*---/;
 
-  // console.log("text is 2", text);
-  // // Find the match in the text
-  // const match = text.match(codePattern);
+  // Find the match in the text
+  const match = text.match(codePattern);
 
-  // // Log the matched code for debugging
-  // if (match) {
-  //   console.log("Extracted code:", match[1].trim());
-  // } else {
-  //   console.log("No code block found in the text.");
-  // }
+  // Log the matched code for debugging
+  if (match) {
+    console.log("Extracted code:", match[1].trim());
+  } else {
+    console.log("No code block found in the text.");
+  }
 
-  // // Return the extracted code or an empty string if no match is found
-  // return match ? match[1].trim() : '';
+  // Return the extracted code or an empty string if no match is found
+  return match ? match[1].trim() : '';
 }
 
 // If LLM wraps it in page.evaluate, we unwrap it
@@ -156,8 +202,10 @@ function splitTextIntoParts(text: string, maxLength: number): string[] {
   return parts;
 }
 
+
+
 // Function to create the message section
-function createMessages(userInput: string, parts: string[]): Message[] {
+export function createMessages(userInput: string, parts: string[]): Message[] {
   const messages: Message[] = [
     {
       role: "system",
@@ -167,10 +215,13 @@ function createMessages(userInput: string, parts: string[]): Message[] {
       Criterion:
       - Respond without details, without conversation, without any details and explanations.
       - Respond with only code.
-      - DO NOT WRAP YOUR RESPONSES IN PAGE.EVALUATE(...) user is passing your output in that function already.
       - Keep your response to only code.
       - Adhere strictly to what is asked and the DOM , do not assume DOM structure or details
-      - A sample of a good replies: document.querySelector('.tms-tile-title--orchestrator').click() , document.querySelector('#sign-in-form [name="password"]').value = 'your_password'`
+      - A sample good code "
+      page.evaluate(() => {
+        document.querySelector('#onetrust-accept-btn-handler').click();
+      });
+      `
     },
     {
       role: "user",
@@ -191,4 +242,3 @@ function createMessages(userInput: string, parts: string[]): Message[] {
   });
   return messages;
 }
-*/
