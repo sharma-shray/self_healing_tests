@@ -103,7 +103,7 @@ async function groqCall(userInput: string, parts: string[]): Promise<string> {
     stream: false,
     stop: null
   });
-  const response=chatCompletion.choices[0].message.content;
+  let response=chatCompletion.choices[0].message.content;
   if (!response.includes("page.evaluate") || !response.includes("Here is")) {
     console.log(` Retrying...`);
     
@@ -111,7 +111,7 @@ async function groqCall(userInput: string, parts: string[]): Promise<string> {
       role: "user",
       content: `You replied with ${response}, Please stick to the format provided, in earlier messages `
     });
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion2 = await groq.chat.completions.create({
       messages: messages,
       model: "mixtral-8x7b-32768",
       temperature: 0,
@@ -120,8 +120,9 @@ async function groqCall(userInput: string, parts: string[]): Promise<string> {
       stream: false,
       stop: null
     });
+    response=chatCompletion2.choices[0].message.content
   }
-  return chatCompletion.choices[0].message.content;
+  return response;
 }
 
 
