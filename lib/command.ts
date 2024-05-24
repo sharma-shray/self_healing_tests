@@ -104,12 +104,12 @@ async function groqCall(userInput: string, parts: string[]): Promise<string> {
     stop: null
   });
   const response=chatCompletion.choices[0].message.content;
-  if (!response.includes("page.evaluate")) {
+  if (!response.includes("page.evaluate") || !response.includes("Here is")) {
     console.log(` Retrying...`);
     
     messages.push({
       role: "user",
-      content: `You replied with ${response}, it is missing the code please fix it `
+      content: `You replied with ${response}, Please stick to the format provided, in earlier messages `
     });
     const chatCompletion = await groq.chat.completions.create({
       messages: messages,
@@ -217,10 +217,13 @@ export function createMessages(userInput: string, parts: string[]): Message[] {
       - Respond with only code.
       - Keep your response to only code.
       - Adhere strictly to what is asked and the DOM , do not assume DOM structure or details
-      - A sample good code "
-      page.evaluate(() => {
-        document.querySelector('#onetrust-accept-btn-handler').click();
-      });
+      - A sample format for a good reply "
+      Here is the code to accept cookies for the provided DOM:
+\`\`\`javascript
+page.evaluate(() => {
+  document.querySelector('#onetrust-accept-btn-handler').click();
+});
+\`\`\`
       `
     },
     {
