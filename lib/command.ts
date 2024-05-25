@@ -63,7 +63,7 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
       if (attempts < maxAttempts) {
         messages.push({
           role: "user",
-          content: `on running it the issue was this: ${errorMessage}. Refer again to the DOM again and think of another way of doing the task`
+          content: `on running it the issue was this: ${errorMessage}. Refer again to the DOM and the error message and think of another way of doing the task`
         });
         
         groqResponse = await groqCall(messages, userInput);
