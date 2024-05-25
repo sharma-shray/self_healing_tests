@@ -11,13 +11,13 @@
 test('Verify User Can create a workflow', async ({ page }) => {
 
     await executeDynamicCommand("Accept the cookies", page);
-    await executeDynamicCommand("Cookie banner should be gone", page);
+    await executeDynamicCommand("Verify that the Cookie banner is no longer visible", page);
     await executeDynamicCommand("Enter text into the \"shray.sharma\" field.", page);
-    await executeDynamicCommand("The entered text should be visible in the Username field.", page);
+    await executeDynamicCommand("Verify that \"shray.sharma\" should be visible in the Username field.", page);
     await executeDynamicCommand("enter password \"Kidsnextdoor123!\"", page);
-    await executeDynamicCommand("verify that the password is entered.", page);
-    await executeDynamicCommand("click login", page);
-    await executeDynamicCommand("user should be succesfully logged in", page);
-    await executeDynamicCommand("Click on phrase orchestrator tile", page);
-    await executeDynamicCommand("User should see orchestrator landing page, with workflows on top as title", page);
+    await executeDynamicCommand("verify that the password field now has some value in it", page);
+    await executeDynamicCommand("click on the login button", page);
+    await executeDynamicCommand("Verify that the user should be succesfully navigated to dashboard page the url should contain ( idm-ui/dashboard)", page);
+    await executeDynamicCommand("Click on phrase orchestrator", page);
+    await executeDynamicCommand("Verify that User should see orchestrator landing page, with workflows on top as title", page);
 });

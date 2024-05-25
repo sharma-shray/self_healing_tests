@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "generate-tests": "node ./zephyr_integration/create_tests.js",
-    "run-playwright": "npx playwright test",
+    "run-playwright": "npx playwright test --ui",
     "test": "npm run generate-tests && npm run run-playwright",
     "test-ui": "npm run generate-tests && npm run integration:open",
     "integration:open": "playwright test --ui --workers=1"
