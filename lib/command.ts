@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk';
 import { load } from 'cheerio';
+import { error } from 'console';
 
 // Define the Message type
 interface Message {
@@ -29,7 +30,7 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
   console.error("Failed to extract body content");
   return;
 }
-
+  console.log("User input : ", userInput);
   //console.log("passing this DOM",PageDOMBody)
   // Split the PageDOMBody into parts of 20k words each
   const parts = splitTextIntoParts(PageDOMBody, 200000);
@@ -37,28 +38,43 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
   // Create the message section with the parts and additional message
   const messages = createMessages(userInput, parts);
   
-  //call groq 
-  const groqResponse = await groqCall(messages,userInput)
-  //console.log("groqResponse", groqResponse);
-  //const groqCleanedResponse = await cleanResponse(groqResponse);
-  console.log("User input : ", userInput);
-  console.log("Cleaned response : ", groqResponse);
+  let groqResponse = await groqCall(messages, userInput);
+  console.log("Initial GROQ response: ", groqResponse);
+
   let result;
-  //Evaluate the response
-  try{result= await page.evaluate(groqResponse);
-    if (result.includes("not")){console.log("hey i caugh the issue");throw new Error(result)}}
-  catch(e)
-  {
-    messages.push({
-      role: "user",
-      content: `You returned the code: ${groqResponse}, on running it the issue was this : ${result}, reffer to the DOM again and fix the code, only if it can be fixed, if it is a valid issue then return a valid error.`
-    });
-    const groqResponsePostFix = await groqCall(messages,userInput)
-    console.log("Groq response post faliure: ",groqResponsePostFix)
-    result= await page.evaluate(groqResponsePostFix);
+  const maxAttempts = 3;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    try {
+      result = await page.evaluate(groqResponse);
+      console.log("Attempt", attempts + 1);
+      
+      // If evaluation is successful and no issues detected, break the loop
+      break;
+    } catch (e) {
+      const errorMessage = e.message.split('\n')[0];
+      if(errorMessage.includes("Verification failure"))
+      {throw new Error(errorMessage)}
+      console.log("Error during attempt", attempts + 1, "of page evaluation:", errorMessage);
+
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        messages.push({
+          role: "user",
+          content: `on running it the issue was this: ${errorMessage}. Refer again to the DOM again and think of another way of doing the task`
+        });
+        
+        groqResponse = await groqCall(messages, userInput);
+        console.log("New GROQ response for attempt", attempts + 1, ": ", groqResponse);
+      } else {
+        // If maximum attempts reached, throw the final error
+        throw new Error(`Failed after ${maxAttempts} attempts with error: ${errorMessage}`);
+      }
+    }
   }
-  
-  console.log(result)
+
   await page.waitForTimeout(100);
 }
 
@@ -81,12 +97,12 @@ async function groqCall(messages,userInput): Promise<string> {
     stop: null
   });
   let response=chatCompletion.choices[0].message.content;
-  if ((!response.includes("page.evaluate(") )|| (userInput.includes("Verify")&&!response.includes("if")&&!response.includes("else") )) {
+  if ((!response.includes("page.evaluate(") )|| (userInput.includes("Verify")&&!response.includes("if"))||(userInput.includes("Verify")&&!response.includes("else"))||(userInput.includes("Verify")&&!response.includes("console.log"))) {
     console.log(` Retrying...`);
     
     messages.push({
       role: "user",
-      content: `You replied with ${response}, Please stick to the formats provided, in earlier messages `
+      content: `You replied with ${response},stick to the formats provided, in earlier messages `
     });
     const chatCompletion2 = await groq.chat.completions.create({
       messages: messages,
@@ -99,7 +115,7 @@ async function groqCall(messages,userInput): Promise<string> {
     });
     response=chatCompletion2.choices[0].message.content
   }
-  console.log("unclean response: ", response)
+//  console.log("unclean response: ", response)
   const groqCleanedResponse = await cleanResponse(response);
   return groqCleanedResponse;
 }
@@ -183,17 +199,17 @@ page.evaluate(() => {
 });
 \`\`\`
 
-For verification steps create both if and else statements
-
+For verification steps create both if and else statements and throw "Verification Faliure"
+ in case of faliure
 Here is the code to check if the user has been navigated to the dashboard page for the provided DOM:
 \`\`\`javascript
 page.evaluate(() => {
   const currentUrl = window.location.href;
   if (currentUrl.includes('/idm-ui/dashboard')) {
-    console.log('User has been navigated to the dashboard page.');
+    return 'User has been navigated to the dashboard page.';
   }
   else (currentUrl.includes('/idm-ui/dashboard')) {
-    console.log('User has not been navigated to the dashboard page.');
+    throw new Error('Verification faliure');
   }
 });
 \`\`\`
