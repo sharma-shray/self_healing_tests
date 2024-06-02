@@ -6,7 +6,7 @@ async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
   const context = await browser.newContext({ignoreHTTPSErrors: true});
   const page = await context.newPage();
-  await page.goto("https://eu.phrase-qa.com/");
+//  await page.goto("https://eu.phrase-qa.com/");
 
 /*
   if (baseURL === "https://eu.phrase-qa.com" || baseURL === "https://eu.phrase-staging.com") {

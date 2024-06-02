@@ -47,9 +47,11 @@ function ensureDirectoryExistence(filePath) {
         fs.mkdirSync(dirname, { recursive: true });
     }
 }
+
+
 // Generates a Playwright test script from fetched test cases
 function generatePlaywrightTests(testCases) {
-    const filePath = './tests/all_tests.spec.js';
+    const filePath = './tests/data/migration/all_tests.spec.js';
     ensureDirectoryExistence(filePath); // Ensure the directory exists
 
     // Check if the file exists and delete it if it does
@@ -59,51 +61,38 @@ function generatePlaywrightTests(testCases) {
 
     // Map each testCase to a Playwright test
     const testScripts = testCases.map(testCase => {
-        // Map each step in a testCase to commands in the test
-        const commands = testCase.steps.map(step => {
-            const command = `    await executeDynamicCommand("${step.inline.description.replace(/"/g, '\\"')}", page);`;
-            const expected = step.inline.expectedResult ? `    await executeDynamicCommand("${step.inline.expectedResult.replace(/"/g, '\\"')}", page);` : '';
-            return `${command}\n${expected}`;
-        }).join('\n');
+        // Create an array of commands for each test case
+        const commandsWithExpectedResults = testCase.steps.reduce((acc, step) => {
+            acc.push(step.inline.description);
+            if (step.inline.expectedResult) {
+                acc.push(step.inline.expectedResult);
+            }
+            return acc;
+        }, []);
 
-        // Define the initial steps for each test globala setup
+        // Define the initial steps for each test
         const initialSteps = '';
 
         // Add the initial steps to each test
         return `
-test('${testCase.name}', async ({ page }) => {
-${initialSteps}
-${commands}
+test('${testCase.name}', async ({ page }, testInfo) => {
+    const commandsWithExpectedResults = ${JSON.stringify(commandsWithExpectedResults, null, 4)};
+
+    await generatePlaywrightTest(commandsWithExpectedResults,page,testInfo);
 });`;
     }).join('\n');
 
     const fullTestScript = `
-    import { test } from '@playwright/test';
-    import { executeDynamicCommand } from '../lib/command';
-    
-    test.beforeEach(async ({ page }) => {
-        //await page.goto("https://eu.phrase-qa.com");
-       // await page.waitForURL("https://eu.phrase-qa.com/idm-ui/signin");
-       await page.goto("http://127.0.0.1:8080/username.html");
-            
-      });
-    
+import { test } from '@playwright/test';
+import { generatePlaywrightTest } from '../../../lib/command';
+
+test.beforeEach(async ({ page }) => {
+    await page.goto("http://127.0.0.1:8080/username.html");
+});
 
 ${testScripts}
 `;
-/*
-//Wait for page load so that we can enter the login credentials
-            await page.waitForSelector("body[data-hydrated]");
-    
-            await page.waitForSelector('button[name="Accept all cookies"]', { state: "hidden" });
-            await page.getByRole('button', { name: 'Accept all cookies' }).click();
-            await page.locator('input[name="username"]').fill("shray.sharma+orchprov1@phrase.com");
-            await page.locator('input[name="password"]').fill("Verygoodpassword123!");
-            await page.locator('[data-testid="account-signin-form--keep-logged-checkbox"]').click();
-            await page.locator('[data-testid="account-signin-form-submit"]').click();
-        
-            await page.waitForURL("https://eu.phrase-qa.com/idm-ui/dashboard");
-            await page.waitForSelector('text="Phrase Orchestrator"', { state: "visible" });*/
+
     fs.writeFileSync(filePath, fullTestScript);
     console.log(`Generated Playwright test file at ${filePath}`);
 }

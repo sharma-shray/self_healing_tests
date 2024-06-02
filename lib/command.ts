@@ -2,6 +2,8 @@
 import {groqCall ,createGroqMessages} from "./groqCall"
 import {callFlaskAPI,generateMessageCodestral } from "./codestralCall"
 import { load } from 'cheerio';
+import fs from 'fs';
+import path from 'path';
 
 const BASE_URL = 'http://127.0.0.1:5000'; 
 // Define the Message type
@@ -10,17 +12,61 @@ interface Message {
   content: string;
 }
 
-export async function executeDynamicCommand(userInput: string, page: any): Promise<void> {
+
+export async function generatePlaywrightTest(commandsWithExpectedResults, page,testInfo) {
+  const generatedCommands: string[] = [];
+  for (const command of commandsWithExpectedResults) {
+      try {
+          const generatedCode = await executeDynamicCommand(command, page);
+          generatedCommands.push(`await page.evaluate(() => {${generatedCode}});`);
+      } catch (error) {
+          console.error(`Test 'user can login' failed:`, error);
+          return; // Exit the test if any command fails
+      }
+  }
+
+  // If all commands executed successfully, append them to successful_tests.js
+  appendCommandsToNewFile(testInfo.title, generatedCommands);
+}
+
+
+// Append generated commands to a new file
+function appendCommandsToNewFile(testName, commands) {
+  const filePath = `./tests/data/eval/${testName}.spec.js`;
+  ensureDirectoryExistence(filePath); // Ensure the directory exists
+
+  const testScript = `
+import { test } from '@playwright/test';
+
+test('${testName}', async ({ page }) => {
+${commands.join('\n')}
+});
+`;
+
+  fs.writeFileSync(filePath, testScript);
+  console.log(`Created test '${testName}' at ${filePath}`);
+}
+
+// Ensures the existence of the directory where the test file will be saved
+function ensureDirectoryExistence(filePath) {
+  const dirname = path.dirname(filePath);
+  if (!fs.existsSync(dirname)) {
+      fs.mkdirSync(dirname, { recursive: true });
+  }
+}
+
+
+
+export async function executeDynamicCommand(userInput, page): Promise<string> {
   // Extract the current page's entire DOM as a string
-  let pageDOMAll: string;
+  let pageDOMAll;
   await page.waitForSelector('body');
   try {
-   
-    pageDOMAll = await page.content();
+      pageDOMAll = await page.content();
   } catch (e) {
-    // Handle error
-    console.error("Failed to get page content:", e);
-    return;
+      // Handle error
+      console.error("Failed to get page content:", e);
+      return "Failed to get page content";
   }
 
   // Load the HTML content into cheerio
@@ -28,18 +74,19 @@ export async function executeDynamicCommand(userInput: string, page: any): Promi
 
   // Extract the content of the <body> tag
   const PageDOMBody = await pageDOM('body').html();
- // Check if PageDOMBody is null and handle it
- if (PageDOMBody === null) {
-  console.error("Failed to extract body content");
-  return;
-}
-  console.log("User input : ", userInput);
-  //console.log("passing this DOM",PageDOMBody)
+  // Check if PageDOMBody is null and handle it
+  if (PageDOMBody === null) {
+      console.error("Failed to extract body content");
+      return "Failed to extract body content";
+  }
 
-   // await evaluateCodestralCall(userInput,PageDOMBody,page);
-  await evaluateGroqCall(userInput,PageDOMBody,page)
+  console.log("User input : ", userInput);
+
+  let response=await evaluateGroqCall(userInput, PageDOMBody, page);
 
   await page.waitForTimeout(100);
+
+  return response;
 }
 
 async function evaluateCodestralCall(userInput,PageDOMBody,page){
@@ -87,6 +134,7 @@ async function evaluateGroqCall(userInput,PageDOMBody,page){
       }
     }
   }
+  return groqResponse;
 }
 
 
