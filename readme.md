@@ -1,4 +1,5 @@
 
 export GROQ_API_KEY=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
+export MISTRAL_API_KEY=VBSj9lOMI11NrTniNBMcCWLAjmLkQIyi
 python groqPy.py
 npm run test

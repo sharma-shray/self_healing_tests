@@ -82,13 +82,28 @@ ${commands}
     import { executeDynamicCommand } from '../lib/command';
     
     test.beforeEach(async ({ page }) => {
-        await page.goto("https://eu.phrase-qa.com/");
+        //await page.goto("https://eu.phrase-qa.com");
+       // await page.waitForURL("https://eu.phrase-qa.com/idm-ui/signin");
+       await page.goto("http://127.0.0.1:8080/username.html");
+            
       });
     
 
 ${testScripts}
 `;
-
+/*
+//Wait for page load so that we can enter the login credentials
+            await page.waitForSelector("body[data-hydrated]");
+    
+            await page.waitForSelector('button[name="Accept all cookies"]', { state: "hidden" });
+            await page.getByRole('button', { name: 'Accept all cookies' }).click();
+            await page.locator('input[name="username"]').fill("shray.sharma+orchprov1@phrase.com");
+            await page.locator('input[name="password"]').fill("Verygoodpassword123!");
+            await page.locator('[data-testid="account-signin-form--keep-logged-checkbox"]').click();
+            await page.locator('[data-testid="account-signin-form-submit"]').click();
+        
+            await page.waitForURL("https://eu.phrase-qa.com/idm-ui/dashboard");
+            await page.waitForSelector('text="Phrase Orchestrator"', { state: "visible" });*/
     fs.writeFileSync(filePath, fullTestScript);
     console.log(`Generated Playwright test file at ${filePath}`);
 }
