@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "generate-tests": "cd .. && cd generate_AI_tests && npm run test && npm run create-playwright-tests",
+    "fix-tests": "cd .. && cd generate_AI_tests && npm run cleanup && npm run test && npm run create-playwright-tests",
     "test": "npx playwright test"
   },
   "keywords": [],

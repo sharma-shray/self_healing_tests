@@ -15,9 +15,6 @@ interface Message {
 
 export async function generatePlaywrightTest(commandsWithExpectedResults, page,testInfo) {
   const generatedCommands: string[] = [];
-  generatedCommands.push(`test.beforeEach(async ({ page }) => {
-    await page.goto("http://127.0.0.1:8080/username.html");
-});`);
   for (const command of commandsWithExpectedResults) {
       try {
           const generatedCode = await executeDynamicCommand(command, page);
@@ -39,7 +36,11 @@ function appendCommandsToNewFile(testName, commands) {
   ensureDirectoryExistence(filePath); // Ensure the directory exists
 
   const testScript = `
-import { test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("http://127.0.0.1:8080/username.html");
+});
 
 test('${testName}', async ({ page }) => {
 ${commands.join('\n')}

@@ -7,7 +7,7 @@ async function sendCommandToGROQ(messages) {
     const groq = new Groq();
     const chatCompletion = await groq.chat.completions.create({
       messages: messages,
-      model: "mixtral-8x7b-32768",
+      model: "llama3-70b-8192",
       temperature: 0,
       max_tokens: 50,
       top_p: 0,
@@ -38,7 +38,7 @@ function createGroqMessages(command) {
         For code with if and else:
         Here is the Playwright code equivalent to the provided JavaScript code:
         \`\`\`javascript
-        await expect(page.getByText("dummy note")).toBeVisible();
+        await expect(page.locator('[name="password"]')).toHaveValue('Verygoodpassword123!');
         \`\`\`
         `
       },

@@ -1,10 +1,11 @@
 
-import { test } from '@playwright/test';
+import { expect,test } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("http://127.0.0.1:8080/username.html");
+});
 
 test('user can login', async ({ page }) => {
-test.beforeEach(async ({ page }) => {
-    await page.goto("http://127.0.0.1:8080/username.html");
-});
 await page.evaluate(() => {document.querySelector('#username').value = 'shray.sharma+orchprov1@phrase.com';});
 await page.evaluate(() => {const usernameInput = document.querySelector('#username');
   if (usernameInput.value === 'shray.sharma+orchprov1@phrase.com') {

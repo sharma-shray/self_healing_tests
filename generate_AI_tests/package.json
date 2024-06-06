@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "migrate-tests": "node ./zephyr_integration/create_tests.js",
+    "cleanup": "node ./lib/cleanUp.js",
     "create-playwright-tests": "node ./lib/playwrightConversion.js",
     "run-playwright": "npx playwright test",
     "test": "npm run migrate-tests && npm run run-playwright",
