@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate-tests": "cd .. && cd generate_AI_tests && npm run test && npm run create-playwright-tests"
+    "generate-tests": "cd .. && cd generate_AI_tests && npm run test && npm run create-playwright-tests",
+    "test": "npx playwright test"
   },
   "keywords": [],
   "author": "",
