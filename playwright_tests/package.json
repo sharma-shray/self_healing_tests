@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "generate-tests": "cd .. && cd generate_AI_tests && npm run test && npm run create-playwright-tests"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
