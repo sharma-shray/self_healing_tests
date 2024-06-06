@@ -84,7 +84,7 @@ export async function executeDynamicCommand(userInput, page): Promise<string> {
       return "Failed to extract body content";
   }
 
-  console.log("User input : ", userInput);
+  //console.log("User input : ", userInput);
 
   let response=await evaluateGroqCall(userInput, PageDOMBody, page);
 
@@ -105,14 +105,14 @@ async function evaluateGroqCall(userInput,PageDOMBody,page){
   // Create the message section with the parts and additional message
   const messages = createGroqMessages(userInput, PageDOMBody,200000);
   let groqResponse = await groqCall( messages,PageDOMBody);
-  console.log("Initial GROQ response: ", groqResponse);
+  //console.log("Initial GROQ response: ", groqResponse);
   let result;
   const maxAttempts = 3;
   let attempts = 0;
   while (attempts < maxAttempts) {
     try {
       result = await page.evaluate(groqResponse);
-      console.log("Attempt", attempts + 1);
+      //console.log("Attempt", attempts + 1);
       
       // If evaluation is successful and no issues detected, break the loop
       break;
