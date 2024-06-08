@@ -26,29 +26,54 @@ export async function generatePlaywrightTest(commandsWithExpectedResults, page,t
   }
 
   // If all commands executed successfully, append them to successful_tests.js
-  appendCommandsToNewFile(testInfo.title, generatedCommands);
+  appendCommandsToNewFile(testInfo.title,path.basename(testInfo.file), generatedCommands);
 }
 
 
 // Append generated commands to a new file
-function appendCommandsToNewFile(testName, commands) {
-  const filePath = `./tests/data/eval/${testName}.spec.js`;
+
+function appendCommandsToNewFile(testName, fileName, commands) {
+  const filePath = `./tests/data/eval/${fileName}`;
   ensureDirectoryExistence(filePath); // Ensure the directory exists
 
   const testScript = `
-import { expect,test } from '@playwright/test';
-
-test.beforeEach(async ({ page }) => {
-  await page.goto("http://127.0.0.1:8080/username.html");
-});
-
 test('${testName}', async ({ page }) => {
 ${commands.join('\n')}
 });
 `;
 
-  fs.writeFileSync(filePath, testScript);
-  console.log(`Created test '${testName}' at ${filePath}`);
+  if (fs.existsSync(filePath)) {
+    const fileContent = fs.readFileSync(filePath, 'utf-8').trim();
+    if (fileContent) {
+      // File exists and is not empty, append new test case
+      fs.appendFileSync(filePath, `\n${testScript}`);
+      console.log(`Appended test '${testName}' to ${filePath}`);
+    } else {
+      // File exists but is empty, write initial content
+      const initialContent = `
+import { expect, test } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("http://127.0.0.1:8080/username.html");
+});
+${testScript}
+`;
+      fs.writeFileSync(filePath, initialContent);
+      console.log(`Created test '${fileName}' at ${filePath}`);
+    }
+  } else {
+    // File does not exist, create and write initial content
+    const initialContent = `
+import { expect, test } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("http://127.0.0.1:8080/username.html");
+});
+${testScript}
+`;
+    fs.writeFileSync(filePath, initialContent);
+    console.log(`Created test '${fileName}' at ${filePath}`);
+  }
 }
 
 // Ensures the existence of the directory where the test file will be saved

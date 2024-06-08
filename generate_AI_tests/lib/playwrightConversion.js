@@ -116,7 +116,7 @@ async function replacePageEvaluateCommandsWithGROQResponses(testFile) {
 
       const replaced = updatedTestFile.replace(regex, `${validateResposne}`);
       if (replaced === updatedTestFile) {
-          console.log(`Command not matched: ${command}`);
+          //console.log(`Command not matched: ${command}`);
       } else {
           updatedTestFile = replaced;
       }
@@ -127,13 +127,13 @@ async function replacePageEvaluateCommandsWithGROQResponses(testFile) {
 
 async function main() {
     // Read the test file
-    const testFile = fs.readFileSync('./tests/data/eval/user can login.spec.js', 'utf-8');
+    const testFile = fs.readFileSync('./tests/data/eval/all_tests.spec.js', 'utf-8');
 
     // Replace page.evaluate commands with GROQ responses
     const updatedTestFile = await replacePageEvaluateCommandsWithGROQResponses(testFile);
 
     // Write the updated test file to a new file
-    fs.writeFileSync('../playwright_tests/tests/user_login.spec.js', updatedTestFile);
+    fs.writeFileSync('../playwright_tests/tests/all_tests.spec.js', updatedTestFile);
 }
 
 main();
