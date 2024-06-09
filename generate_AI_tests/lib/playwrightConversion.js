@@ -106,7 +106,7 @@ async function replacePageEvaluateCommandsWithGROQResponses(testFile) {
       const message = createGroqMessages(command);
       const response = await sendCommandToGROQ(message);
       const validateResposne=await validateGroqResponse(message,response);
-      console.log("llama's response",validateResposne);
+      //console.log("llama's response",validateResposne);
 
       // Escape special characters for regex
       const escapedCommand = command.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');

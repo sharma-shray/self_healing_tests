@@ -11,6 +11,7 @@ export async function groqCall(messages,userInput): Promise<string> {
     const groq = new Groq();
     const chatCompletion = await groq.chat.completions.create({
       messages: messages,
+      //model:"llama3-70b-8192",
       model: "mixtral-8x7b-32768",
       temperature: 0,
       max_tokens: 1024,

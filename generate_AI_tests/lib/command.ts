@@ -145,7 +145,7 @@ async function evaluateGroqCall(userInput,PageDOMBody,page){
       const errorMessage = e.message.split('\n')[0];
       if(errorMessage.includes("Verification failure"))
       {throw new Error(errorMessage)}
-      console.log("Error during attempt", attempts + 1, "of page evaluation:", errorMessage);
+      console.log("Error during attempt", attempts + 1, "for generating code:", errorMessage);
 
       attempts++;
       
@@ -156,7 +156,7 @@ async function evaluateGroqCall(userInput,PageDOMBody,page){
         });
         
         groqResponse = await groqCall(messages, userInput);
-        console.log("New GROQ response for attempt", attempts + 1, ": ", groqResponse);
+        console.log("New generated response for attempt", attempts + 1, ": ", groqResponse);
       } else {
         // If maximum attempts reached, throw the final error
         throw new Error(`Failed after ${maxAttempts} attempts with error: ${errorMessage}`);
