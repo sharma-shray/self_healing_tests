@@ -75,7 +75,7 @@ function generatePlaywrightTests(testCases) {
 
         // Add the initial steps to each test
         return `
-test('${testCase.name}', async ({ page }, testInfo) => {
+test(\`${testCase.name}\`, async ({ page }, testInfo) => {
     const commandsWithExpectedResults = ${JSON.stringify(commandsWithExpectedResults, null, 4)};
 
     await generatePlaywrightTest(commandsWithExpectedResults,page,testInfo);
